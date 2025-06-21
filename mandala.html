@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rosca com Texto Central e Estilos</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #ffffff;
+            margin: 0;
+        }
+        canvas {
+            background: transparent;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="rosca" width="800" height="800"></canvas>
+
+<script>
+    const canvas = document.getElementById('rosca');
+    const ctx = canvas.getContext('2d');
+
+    // 🔧 Configurações principais
+    const labels = {
+        "Texto de exemplo 01": "on",
+        "Texto de exemplo 02": "on",
+        "Texto de exemplo 03": "on",
+        "Texto de exemplo 04": "on",
+        "Texto de exemplo 05": "off",
+        "Texto de exemplo 06": "off",
+        "Texto de exemplo 07": "off",
+        "Texto de exemplo 08": "off"
+    };
+
+    const fillColor = "#ADD8E6";             // Cor padrão dos setores
+    const borderColor = "#ADD8E6";           // Cor padrão da borda
+    const highlightColor = "#00008B";        // Cor dos setores 'on'
+    const highlightBorderColor = "#FFA500";  // Cor da borda dos setores 'on'
+    const lineColor = "white";               // Cor das linhas divisórias
+    const lineWidth = 6;                     // Espessura das linhas divisórias
+    const borderThickness = 8;               // Espessura da borda externa
+
+    const outerRadius = 300;                 // Raio externo total
+    const innerRadius = 130;                 // Raio interno (furo da rosca)
+
+    const startAngleDeg = -90;               // Ângulo inicial (em graus)
+
+    // 🔤 Estilo dos textos nos setores
+    const sectorFontSize = 25;
+    const sectorFontFamily = "sans-serif";
+    const sectorFontColor = "white";
+
+    // 🔤 Texto central
+    const centerText = "Texto central de exemplo 01";
+    const centerFontSize = 30;
+    const centerFontFamily = "sans-serif";
+    const centerFontColor = "#00008B";
+
+    // 📐 Cálculos
+    const keys = Object.keys(labels);
+    const n = keys.length;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const borderInnerRadius = outerRadius - borderThickness;
+    const anglePerSection = (2 * Math.PI) / n;
+    const angleOffset = (startAngleDeg * Math.PI / 180) - (anglePerSection / 2);
+
+    // 🎨 Desenhar fundo branco
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
+    ctx.fillStyle = "white";
+    ctx.fill();
+    ctx.closePath();
+
+    // 🎨 Desenhar borda externa setor por setor
+    keys.forEach((label, i) => {
+        const status = labels[label];
+        const startAngle = i * anglePerSection + angleOffset;
+        const endAngle = startAngle + anglePerSection;
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle);
+        ctx.arc(centerX, centerY, borderInnerRadius, endAngle, startAngle, true);
+        ctx.closePath();
+
+        ctx.fillStyle = status === 'on' ? highlightBorderColor : borderColor;
+        ctx.fill();
+    });
+
+    // 🎨 Desenhar setores internos
+    keys.forEach((label, i) => {
+        const status = labels[label];
+        const startAngle = i * anglePerSection + angleOffset;
+        const endAngle = startAngle + anglePerSection;
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, borderInnerRadius - lineWidth / 2, startAngle, endAngle);
+        ctx.arc(centerX, centerY, innerRadius, endAngle, startAngle, true);
+        ctx.closePath();
+
+        ctx.fillStyle = status === 'on' ? highlightColor : fillColor;
+        ctx.fill();
+    });
+
+    // ➖ Desenhar linhas divisórias
+    for (let i = 0; i < n; i++) {
+        const angle = i * anglePerSection + angleOffset;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+
+        const startX = centerX + innerRadius * cos;
+        const startY = centerY + innerRadius * sin;
+        const endX = centerX + outerRadius * cos;
+        const endY = centerY + outerRadius * sin;
+
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+    }
+
+    // ➖ Linha circular separando borda do corpo
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, borderInnerRadius - lineWidth / 2, 0, 2 * Math.PI);
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+
+    // 🧠 Função de Word Wrap
+    function getWrappedLines(ctx, text, maxWidth) {
+        const words = text.split(' ');
+        let line = '';
+        const lines = [];
+
+        for (let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' ';
+            const metrics = ctx.measureText(testLine);
+            const testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                lines.push(line.trim());
+                line = words[n] + ' ';
+            } else {
+                line = testLine;
+            }
+        }
+        lines.push(line.trim());
+        return lines;
+    }
+
+    // 🔤 Desenhar textos nos setores
+    keys.forEach((label, i) => {
+        const startAngle = i * anglePerSection + angleOffset;
+        const endAngle = startAngle + anglePerSection;
+        const midAngle = (startAngle + endAngle) / 2;
+
+        const textRadius = (innerRadius + (borderInnerRadius - lineWidth / 2)) / 2;
+        const textX = centerX + textRadius * Math.cos(midAngle);
+        const textY = centerY + textRadius * Math.sin(midAngle);
+
+        // 📐 Espaço disponível
+        const radialHeight = (borderInnerRadius - lineWidth / 2) - innerRadius;
+        const angularWidth = anglePerSection * textRadius;
+        const maxWidth = angularWidth * 0.9; 
+        const maxHeight = radialHeight * 0.9;
+
+        let fontSize = sectorFontSize;
+        let lineHeight = fontSize + 2;
+
+        ctx.font = `${fontSize}px ${sectorFontFamily}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = sectorFontColor;
+
+        let lines = getWrappedLines(ctx, label, maxWidth);
+
+        while (lines.length * lineHeight > maxHeight && fontSize > 8) {
+            fontSize -= 1;
+            lineHeight = fontSize + 2;
+            ctx.font = `${fontSize}px ${sectorFontFamily}`;
+            lines = getWrappedLines(ctx, label, maxWidth);
+        }
+
+        const offsetY = -((lines.length - 1) * lineHeight) / 2;
+
+        ctx.save();
+        ctx.translate(textX, textY);
+
+        lines.forEach((line, index) => {
+            ctx.fillText(line, 0, offsetY + index * lineHeight);
+        });
+
+        ctx.restore();
+    });
+
+    // 🎯 Desenhar texto central no círculo interno
+    (function drawCenterText() {
+        const maxWidth = innerRadius * 1.6;
+        const maxHeight = innerRadius * 1.6;
+
+        let fontSize = centerFontSize;
+        let lineHeight = fontSize + 2;
+
+        ctx.font = `${fontSize}px ${centerFontFamily}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = centerFontColor;
+
+        let lines = getWrappedLines(ctx, centerText, maxWidth);
+
+        while (lines.length * lineHeight > maxHeight && fontSize > 8) {
+            fontSize -= 1;
+            lineHeight = fontSize + 2;
+            ctx.font = `${fontSize}px ${centerFontFamily}`;
+            lines = getWrappedLines(ctx, centerText, maxWidth);
+        }
+
+        const offsetY = -((lines.length - 1) * lineHeight) / 2;
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+
+        lines.forEach((line, index) => {
+            ctx.fillText(line, 0, offsetY + index * lineHeight);
+        });
+
+        ctx.restore();
+    })();
+
+</script>
+
+</body>
+</html>
